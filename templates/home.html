@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+
+{% block container %}
+  <div class="top-pad">
+    {% for user in user_profiles %}
+      <div class="well">
+        <h2>
+          <a href="{{ url_for('user', key=user) }}">{{user_profiles['_id'] }}</a>
+        </h2>
+      </div>
+    {% endfor %}
+  </div>
+{% endblock %}
