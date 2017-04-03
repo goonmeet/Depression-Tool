@@ -1,0 +1,21 @@
+<!doctype html>
+<html>
+   <body>
+     <!-- <div align="center"> {{user[0]["_id"]}}</div> -->
+     <!-- <div> {{user[0]["_source"]["profile_image_url"]}}</div> -->
+     <div align="center"> <img src="{{user[0]["_source"]["profile_image_url"]}}" alt="Mountain View"></div>
+     <div  align="center">
+        <table border = 1,  align="center">
+          {% for tweet in tweets %}
+
+             <tr>
+                <th> {{ tweet["_source"]["text"]}} </th>
+             </tr>
+
+          {% endfor %}
+       </table>
+     </div>
+     <!-- <div  align="center"> {{user[0]}}</div> -->
+
+   </body>
+</html>

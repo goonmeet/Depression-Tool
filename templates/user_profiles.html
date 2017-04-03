@@ -1,8 +1,19 @@
 <!doctype html>
 <html>
+<head>
+  <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+  <style>
+
+
+
+</style>
+</head>
    <body>
 
       <table border = 1,  align="center">
+        <tr style="background-color: #4CAF50; color: white">
+           <th> Users </th>
+        </tr>
          {% for key in result %}
 
             <tr>
@@ -11,6 +22,10 @@
 
          {% endfor %}
       </table>
-
+      <div> <br> </div>
+      <div align = "center">
+          {{googlemap("simple-map", 37.4419, -122.1419, markers = [{'lat': 37.4419, 'lng': -122.1419}])}}
+        </div>
+      </div>
    </body>
 </html>

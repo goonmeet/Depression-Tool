@@ -1,0 +1,90 @@
+<!-- 
+      <div class="row">
+         <div class="col-md-4">
+            <div class="row">
+               <div class="col-md-6">
+                  <p>Yr umami selfies Carles DIY, pop-up Tonx meggings stumptown freegan street art Vice ethnic.</p>
+               </div>
+               <div class="col-md-6">
+                  <p>Stumptown YOLO fanny pack bespoke, kitsch Carles gastropub vegan.</p>
+               </div>
+            </div>
+            <div class="row">
+               <div class="col-md-6">
+                  <p>Pickled gastropub lo-fi polaroid, ennui selvage meh Tumblr organic iPhone kale chips narwhal Echo Park.</p>
+               </div>
+               <div class="col-md-6">
+                  <p>Biodiesel ennui church-key McSweeney's, selvage hoodie Brooklyn 90's lomo.</p>
+               </div>
+            </div>
+         </div>
+         <div class="col-md-4">
+            <p>Yr umami selfies Carles DIY, pop-up Tonx meggings stumptown freegan street art Vice ethnic. Pickled gastropub lo-fi polaroid, ennui selvage meh Tumblr organic iPhone kale chips narwhal Echo Park. Tonx literally distillery Pitchfork McSweeney's semiotics. Stumptown YOLO fanny pack bespoke, kitsch Carles gastropub vegan. Biodiesel ennui church-key McSweeney's, selvage hoodie Brooklyn 90's lomo. Quinoa photo booth cliche semiotics. Roof party Etsy ethnic, fashion axe mlkshk 8-bit paleo.</p>
+         </div>
+         <div class="col-md-4">
+            <p>
+            <ul class="list-group">
+               <li class="list-group-item"><span class="badge">14</span>Quinoa photo booth</li>
+               <li class="list-group-item"><span class="badge">10</span>iPhone kale chips</li>
+               <li class="list-group-item"><span class="badge">6</span>fanny pack bespoke</li>
+               <li class="list-group-item"><span class="badge">4</span>lo-fi polaroid</li>
+               <li class="list-group-item"><span class="badge">2</span>Tonx meggings stumptown</li>
+            </ul>
+            </p>
+         </div>
+      </div><!-- 
+      <div class="container" style="color: white">
+         <div class="row">
+            <div class="col-md-4">
+               <p>Insert text here if you have any</p>
+            </div>
+            <div class="col-md-4">
+               <p>Yr umami selfies Carles DIY, pop-up Tonx meggings stumptown freegan street art Vice ethnic. Pickled gastropub lo-fi polaroid, ennui selvage meh Tumblr organic iPhone kale chips narwhal Echo Park. Tonx literally distillery Pitchfork McSweeney's semiotics. Stumptown YOLO fanny pack bespoke, kitsch Carles gastropub vegan. Biodiesel ennui church-key McSweeney's, selvage hoodie Brooklyn 90's lomo. Quinoa photo booth cliche semiotics. Roof party Etsy ethnic, fashion axe mlkshk 8-bit paleo.</p>
+            </div>
+            <div class="col-md-4">
+               <p>Yr umami selfies Carles DIY, pop-up Tonx meggings stumptown freegan street art Vice ethnic. Pickled gastropub lo-fi polaroid, ennui selvage meh Tumblr organic iPhone kale chips narwhal Echo Park. Tonx literally distillery Pitchfork McSweeney's semiotics. Stumptown YOLO fanny pack bespoke, kitsch Carles gastropub vegan. Biodiesel ennui church-key McSweeney's, selvage hoodie Brooklyn 90's lomo. Quinoa photo booth cliche semiotics. Roof party Etsy ethnic, fashion axe mlkshk 8-bit paleo.</p>
+            </div>
+         </div>
+         <div class="row">
+            <div class="col-md-8 col-md-offset-2">
+               <p>Yr umami selfies Carles DIY, pop-up Tonx meggings stumptown freegan street art Vice ethnic. Pickled gastropub lo-fi polaroid, ennui selvage meh Tumblr organic iPhone kale chips narwhal Echo Park. Tonx literally distillery Pitchfork McSweeney's semiotics. Stumptown YOLO fanny pack bespoke, kitsch Carles gastropub vegan. Biodiesel ennui church-key McSweeney's, selvage hoodie Brooklyn 90's lomo. Quinoa photo booth cliche semiotics. Roof party Etsy ethnic, fashion axe mlkshk 8-bit paleo.</p>
+            </div>
+
+         </div>
+
+      </div>
+
+ <!-- 
+            <div align = "center">
+               {{googlemap("simple-map", 0, 0, markers = m_list)}}
+            </div>
+ -->
+ <!-- 
+            <a class="btn btn-primary btn-lg btn-block">Big ASS Learn more button</a>
+ -->
+ 
+ <!-- 
+      <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDYRyuCbFOh_8ivTTnm1YjsXv4kKYWoPYc"async defer></script>
+ -->
+ 
+ 
+ <!-- 
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDYRyuCbFOh_8ivTTnm1YjsXv4kKYWoPYc" async defer></script>
+ -->
+<!-- 
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDYRyuCbFOh_8ivTTnm1YjsXv4kKYWoPYc&callback=initMap" async defer></script>
+ -->
+<!-- 
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+ -->
+
+    <!-- 
+    <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDYRyuCbFOh_8ivTTnm1YjsXv4kKYWoPYc&callback=initMap"></script>
+ -->
+     <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDYRyuCbFOh_8ivTTnm1YjsXv4kKYWoPYc&callback=initMap"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDYRyuCbFOh_8ivTTnm1YjsXv4kKYWoPYc" async defer></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDYRyuCbFOh_8ivTTnm1YjsXv4kKYWoPYc" async defer></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.googlemap/1.5/jquery.googlemap.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDYRyuCbFOh_8ivTTnm1YjsXv4kKYWoPYc" async defer></script>

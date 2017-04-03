@@ -1,0 +1,10 @@
+GET depressed_tweets/_search
+{
+    "query": {
+        "constant_score" : {
+            "filter" : {
+                "exists" : { "field" : "coordinates" }
+            }
+        }
+    }
+}

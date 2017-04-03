@@ -1,7 +1,11 @@
 <html>
+	<head>
+	    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+	</head>
    <body>
    
-      <form action = "http://localhost:5000/result" method = "POST">
+      <form action = "http://localhost:5000/result" method = "POST" autocomplete="on">
+		 <p>SCREEN_NAME <input type = "text" name = "SCREEN_NAME" /></p>
          <p>CONSUMER_KEY <input type = "text" name = "CONSUMER_KEY" /></p>
          <p>CONSUMER_SECRET <input type = "text" name = "CONSUMER_SECRET" /></p>
          <p>OAUTH_TOKEN <input type = "text" name = "OAUTH_TOKEN" /></p>
