@@ -18,6 +18,19 @@ def form():
 
 @app.route('/sample')
 def sample():
+	# All user's whose last status had a geo coordinate
+    user_objects = es_users.getAllCoordinates()
+    #markers = list(set(user_objects))
+    #temp = {v['screen_name']:v for v in user_objects}.values()
+    #mark_json = temp
+    #print len(mark_json)
+    return render_template('new_home.html', result = user_objects, mark_json = user_objects)
+
+
+
+@app.route('/')
+def student():
+    print "HI"
     print "HI"
     user_objects = es_users.getAllUserScreenNames()
     markers = []
@@ -52,22 +65,8 @@ def sample():
     mark_json = temp
     print len(mark_json)
     return render_template('sample.html', result = user_objects, m_list = markers, mark_json = mark_json)
-
-
-
-@app.route('/')
-def student():
-    result = es_users.getAllUserScreenNames()
-    es_users.getAllUserScreenNamesWithGeo()
-    #print result
-    # markers=[{'icon': icons.alpha.B, 'lat':  37.4419, 'lng':  -122.1419, 'infobox': "Hello I am < b style='color:green;'>B< / b >!"},
-    #         { 'icon': icons.dots.blue, 'lat': 37.4300, 'lng': -122.1400, 'infobox': "Hello I am < b style='color:blue;'>BLUE< / b >!"},
-    #         {'icon': icons.dots.yellow, 'lat': 37.4500, 'lng': -122.1350, 'infobox': ("Hello I am < b style='color:#ffcc00;'> YELLOW < / b >!" "< h2 >It is HTML title< / h2 >" "< img src=' //placehold.it/50' >" "< br >Images allowed!")}
-    #     ]
-    m_list = [{'lat': 37.4419, 'lng': -122.1419}]
-    markers = [{'lat': 37.4419, 'lng': -122.1419}, {'lat': 37.4500, 'lng': -122.1419}, {'lat': 36.4419, 'lng': -120.1419}]
-    return render_template('user_profiles.html', result = result, m_list = m_list)
-
+    
+    
 def getAvgSentiment(user):
 	all_tweets = es_users.getStoredTweets(user)
 	print len(all_tweets)

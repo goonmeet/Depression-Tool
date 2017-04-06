@@ -15,8 +15,8 @@ def parse_response(list_of_objs, type):
     		z["user"] = user["_source"]
     		z["coordinates"] = user["_source"]["status"]["coordinates"]["coordinates"]
     		z["profile_image_url"] = user["_source"]["profile_image_url"]
-    		z["lat"] = tweet_json["_source"]["status"]["geo"]["coordinates"][0]
-    		z["lng"] = tweet_json["_source"]["status"]["geo"]["coordinates"][1]
+    		z["lat"] = user["_source"]["status"]["geo"]["coordinates"][0]
+    		z["lng"] = user["_source"]["status"]["geo"]["coordinates"][1]
     		if "place" in user["_source"]["status"]:
 				z["place"] = user["_source"]["status"]["place"]
 				location = True
@@ -45,52 +45,82 @@ def parse_response(list_of_objs, type):
 				tweet_obj["profile_image_url"] = tweet_json["_source"]["user"]["profile_image_url"]
     			tweet_obj["lat"] = tweet_json["_source"]["geo"]["coordinates"][0]
     			tweet_obj["lng"] = tweet_json["_source"]["geo"]["coordinates"][1]
+    			tweet_obj["coordinates"] = tweet_json["_source"]["geo"]["coordinates"]
     			all_obj.append(tweet_obj)
 				#print tweet_obj["text"]
 
 	return all_obj
 
+# 
+# {"query": {"exists": {"field": "coordinates.coordinates"}}, "aggs": {"group_by_user": { "terms": { "field": "user.screen_name.keyword", "size": user_count}, "aggregations": { "hits": {"top_hits": { "size": 1 }}}}}}
 
+def getAllUsersWithTweetsWithCoordinates():
+	user_count = es.count(index="user_profiles", doc_type="Self_Reported_Profiles_40k")['count']
+	print user_count
+	res = es.search(index="depressed_tweets", doc_type="tweepyTweet", body={"query": {"exists": {"field": "coordinates.coordinates"}}, "aggs": {"group_by_user": { "terms": { "field": "user.screen_name.keyword", "size": user_count}, "aggregations": { "hits": {"top_hits": { "size": 1 }}}}}}, request_timeout=60)
+	#size = 1000, scroll = '3m', 
+	#s_id = res['_scroll_id']
+	#scroll_size = res['hits']['total']
+	all_users = res['aggregations']['group_by_user']['buckets']
+	user_profs = []
+	user_objs = []
+	u_o = {}
+	#print "Total hits " + str(len(res['hits']['hits']))
+	#print res['hits']['total']
+	# while (scroll_size > 0):
+# 		res = es.scroll(scroll_id = s_id, scroll = '3m' , request_timeout=160)
+# 		s_id = res['_scroll_id']
+# 		scroll_size = len(res['hits']['hits'])
+# 		print res
+# 		tweets = res['aggregations']['group_by_user']['buckets']
+# 		all_tweets = all_tweets + tweets
+#         #print "scroll_size: " + str(scroll_size)
+	#print len(all_users)
+	for x in all_users:
+		y = x["hits"]["hits"]["hits"][0]["_source"]["user"]
+		u_o["screen_name"] = str(x["key"])
+		u_o["user_img"] = str(x["hits"]["hits"]["hits"][0]["_source"]["user"]["profile_image_url_https"])
+		u_o["lat"] = x["hits"]["hits"]["hits"][0]["_source"]["geo"]["coordinates"][0]
+		u_o["lng"] = x["hits"]["hits"]["hits"][0]["_source"]["geo"]["coordinates"][1]
+		u_o["tweet_count"] = getStoredTweetCount(u_o["screen_name"])
+		user_objs.append(u_o)
+		u_o = {} 
+		#sys.exit()
+	#print len(user_objs)
+	return user_objs
 
-def getAllTweetsWithCoordinates():
-    res = es.search(size = 1000, scroll = '3m', index="depressed_tweets", doc_type="tweepyTweet", body={ "query": {"exists": {"field": "coordinates.coordinates"}}, "aggs": {"group_by_tweets": {"terms": {"field": "user.screen_name.keyword"}}}}, request_timeout=60)
-    s_id = res['_scroll_id']
-    scroll_size = res['hits']['total']
-    all_tweets = res['hits']['hits']
-    #print "Total hits " + str(len(res['hits']['hits']))
-    #print res['hits']['total']
-    while (scroll_size > 0):
-        res = es.scroll(scroll_id = s_id, scroll = '3m' , request_timeout=160)
-        s_id = res['_scroll_id']
-        scroll_size = len(res['hits']['hits'])
-        tweets = res['hits']['hits']
-        all_tweets = all_tweets + tweets
-        #print "scroll_size: " + str(scroll_size)
-    print len(all_tweets)
-    return all_tweets
 
 def getAllUsersWithCoordinates():
-    user_obj = []
-    users_withTweets = []
-    usersTweetCounts = []
+    user_objs = []
     res_users = es.search(size = 1000, scroll = '3m', index="user_profiles", doc_type="Self_Reported_Profiles_40k", body={"query": {"exists": {"field": "status.geo.coordinates"}}, "size" : 100 }, request_timeout=60)
     s_id = res_users['_scroll_id']
     scroll_size = res_users['hits']['total']
-    all_tweets = res_users['hits']['hits']
+    all_users = res_users['hits']['hits']
+    #print all_users
+    #print len(all_users)
     while (scroll_size > 0):
         res_users = es.scroll(scroll_id = s_id, scroll = '3m' , request_timeout=160)
         s_id = res_users['_scroll_id']
         scroll_size = len(res_users['hits']['hits'])
         tweets = res_users['hits']['hits']
-        all_tweets = all_tweets + tweets
+        all_users = all_users + tweets
         #print "scroll_size: " + str(scroll_size)
         #print len(all_tweets)
-    print len(all_tweets)
-    return all_tweets
+    #print len(all_users)
+    u_o = {}
+    for x in all_users:
+		u_o["screen_name"] = str(x["_id"])
+		u_o["user_img"] = str(x["_source"]["profile_image_url_https"])
+		u_o["lat"] = x["_source"]["status"]["geo"]["coordinates"][0]
+		u_o["lng"] = x["_source"]["status"]["geo"]["coordinates"][1]
+		u_o["tweet_count"] = getStoredTweetCount(u_o["screen_name"])
+		user_objs.append(u_o)
+		u_o = {} 
+    return user_objs
 
 def getAllCoordinates():
-	a = parse_response(getAllUsersWithCoordinates(), "user")
-	b = parse_response(getAllTweetsWithCoordinates(), "tweet")
+	a = getAllUsersWithCoordinates()
+	b = getAllUsersWithTweetsWithCoordinates()
 	c = a + b
 	return c
 
@@ -98,7 +128,6 @@ def getAllUserScreenNames():
     user_obj = []
     users_withTweets = []
     usersTweetCounts = []
-    res = es.search(index="depressed_tweets", doc_type="tweepyTweet", body={ "query": {"exists": {"field": "coordinates.coordinates"}}, "aggs": {"group_by_tweets": {"terms": {"field": "user.screen_name.keyword"}}}}, request_timeout=60)
     res_users = es.search(index="user_profiles", doc_type="Self_Reported_Profiles_40k", body={"query": {"exists": {"field": "status.geo.coordinates"}}, "size" : 100 }, request_timeout=60)
     res_users = res_users["hits"]["hits"]
     for user in res_users:
@@ -108,33 +137,33 @@ def getAllUserScreenNames():
     	z["tweet_count"] = getStoredTweetCount(user["_source"]["screen_name"])
     	z["user_object"] = user
     	user_obj.append(z)
-    res = res['aggregations']['group_by_tweets']['buckets']
-    #print res[0]
-    profiles = res
-    #print len(profiles)
-
-    #print len(profiles)
-    for buckets in profiles:
-    	#print x
-    	#x = json.dumps(json.loads(x))
-    	profile = getUser(buckets['key'])
-    	#print y
-    	users_withTweets.append(profile[0])
-        #print getStoredTweetCount(x["key"])
-    	z = {}
-    	z["screen_name"] = buckets["key"]
-    	z["tweet_count"] = getStoredTweetCount(buckets["key"])
-    	z["user_object"] = profile[0]
-        #print profile[0]
-        #print z
-        user_obj.append(z)
-        usersTweetCounts.append(getStoredTweetCount(buckets["key"]))
-        # if getStoredTweetCount(x["key"]) > 25:
-#         	x = getUser(x)
-#         	users_withTweets.append(x)
-#         	print x
-#         	usersTweetCounts.append(getStoredTweetCount(x["_id"]))
-#             #print getStoredTweetCount(x["_id"])
+    # res = res['aggregations']['group_by_tweets']['buckets']
+#     #print res[0]
+#     profiles = res
+#     #print len(profiles)
+# 
+#     #print len(profiles)
+#     for buckets in profiles:
+#     	#print x
+#     	#x = json.dumps(json.loads(x))
+#     	profile = getUser(buckets['key'])
+#     	#print y
+#     	users_withTweets.append(profile[0])
+#         #print getStoredTweetCount(x["key"])
+#     	z = {}
+#     	z["screen_name"] = buckets["key"]
+#     	z["tweet_count"] = getStoredTweetCount(buckets["key"])
+#     	z["user_object"] = profile[0]
+#         #print profile[0]
+#         #print z
+#         user_obj.append(z)
+#         usersTweetCounts.append(getStoredTweetCount(buckets["key"]))
+#         # if getStoredTweetCount(x["key"]) > 25:
+# #         	x = getUser(x)
+# #         	users_withTweets.append(x)
+# #         	print x
+# #         	usersTweetCounts.append(getStoredTweetCount(x["_id"]))
+# #             #print getStoredTweetCount(x["_id"])
     user_obj.sort(key=lambda x: x['tweet_count'], reverse=True)
     #print user_obj
     #users_withTweets.sort(key=lambda x: getStoredTweetCount(x['_id']), reverse=True)
@@ -238,6 +267,71 @@ def indexUser(index_id, user_profile_json):
     res = es.index(index = "user_profiles", doc_type = "Self_Reported_Profiles_40k", body = user_profile_json, id = index_id)
     print res
 
+
+# def getAllUserScreenNames():
+#     user_obj = []
+#     users_withTweets = []
+#     usersTweetCounts = []
+#     res_users = es.search(index="user_profiles", doc_type="Self_Reported_Profiles_40k", body={"query": {"exists": {"field": "status.geo.coordinates"}}, "size" : 100 }, request_timeout=60)
+#     res_users = res_users["hits"]["hits"]
+#     for user in res_users:
+#     	#print user["_source"]["status"]["geo"]["coordinates"]
+#     	z = {}
+#     	z["screen_name"] = user["_source"]["screen_name"]
+#     	z["tweet_count"] = getStoredTweetCount(user["_source"]["screen_name"])
+#     	z["user_object"] = user
+#     	user_obj.append(z)
+#     # res = res['aggregations']['group_by_tweets']['buckets']
+# #     #print res[0]
+# #     profiles = res
+# #     #print len(profiles)
+# # 
+# #     #print len(profiles)
+# #     for buckets in profiles:
+# #     	#print x
+# #     	#x = json.dumps(json.loads(x))
+# #     	profile = getUser(buckets['key'])
+# #     	#print y
+# #     	users_withTweets.append(profile[0])
+# #         #print getStoredTweetCount(x["key"])
+# #     	z = {}
+# #     	z["screen_name"] = buckets["key"]
+# #     	z["tweet_count"] = getStoredTweetCount(buckets["key"])
+# #     	z["user_object"] = profile[0]
+# #         #print profile[0]
+# #         #print z
+# #         user_obj.append(z)
+# #         usersTweetCounts.append(getStoredTweetCount(buckets["key"]))
+# #         # if getStoredTweetCount(x["key"]) > 25:
+# # #         	x = getUser(x)
+# # #         	users_withTweets.append(x)
+# # #         	print x
+# # #         	usersTweetCounts.append(getStoredTweetCount(x["_id"]))
+# # #             #print getStoredTweetCount(x["_id"])
+#     user_obj.sort(key=lambda x: x['tweet_count'], reverse=True)
+#     #print user_obj
+#     #users_withTweets.sort(key=lambda x: getStoredTweetCount(x['_id']), reverse=True)
+#     #print y
+#     #return users_withTweets, usersTweetCounts
+#     return user_obj
+
+
+# def getAllTweetsWithCoordinates():
+#     res = es.search(size = 1000, scroll = '3m', index="depressed_tweets", doc_type="tweepyTweet", body={ "query": {"exists": {"field": "coordinates.coordinates"}}, "aggs": {"group_by_tweets": {"terms": {"field": "user.screen_name.keyword"}}}}, request_timeout=60)
+#     s_id = res['_scroll_id']
+#     scroll_size = res['hits']['total']
+#     all_tweets = res['hits']['hits']
+#     #print "Total hits " + str(len(res['hits']['hits']))
+#     #print res['hits']['total']
+#     while (scroll_size > 0):
+#         res = es.scroll(scroll_id = s_id, scroll = '3m' , request_timeout=160)
+#         s_id = res['_scroll_id']
+#         scroll_size = len(res['hits']['hits'])
+#         tweets = res['hits']['hits']
+#         all_tweets = all_tweets + tweets
+#         #print "scroll_size: " + str(scroll_size)
+#     print len(all_tweets)
+#     return all_tweets
 #
 # def get_all_tweets(screen_name):
 #         #Twitter only allows access to a users most recent 3240 tweets with this method
