@@ -4,6 +4,8 @@ from flask_bootstrap import Bootstrap
 import tweepy, json
 import es_users, textblob
 from textblob import TextBlob
+import requests
+
 app = Flask(__name__)
 Bootstrap(app)
 ACCESS_TOKEN = ""
@@ -19,54 +21,47 @@ def form():
 @app.route('/sample')
 def sample():
 	# All user's whose last status had a geo coordinate
-    user_objects = es_users.getAllCoordinates()
-    #markers = list(set(user_objects))
-    #temp = {v['screen_name']:v for v in user_objects}.values()
-    #mark_json = temp
-    #print len(mark_json)
-    return render_template('new_home.html', result = user_objects, mark_json = user_objects)
+    user_objects, place_user_objects = es_users.getAllCoordinates()
+    return render_template('new_home.html', result = user_objects, mark_json = user_objects, place_user_objects = place_user_objects)
 
-
-
-@app.route('/')
-def student():
-    print "HI"
-    print "HI"
-    user_objects = es_users.getAllUserScreenNames()
-    markers = []
-    mark_json = []
-    for u_o in user_objects:
-    	for x in es_users.getStoredTweets(u_o["screen_name"]):
-    		x = json.dumps(x)
-    		x = json.loads(x)
-    		#print x 
-    		if x["_source"]["geo"] is not None:
-    			z = {}
-    			z["user_img"] = str(u_o["user_object"]["_source"]["profile_image_url"])
-    			#print z["user_img"]
-    			z["screen_name"] = str(u_o["screen_name"])
-    			z["lat"] = x["_source"]["geo"]["coordinates"][0]
-    			z["lng"] = x["_source"]["geo"]["coordinates"][1]
-    			markers.append(tuple(x["_source"]["geo"]["coordinates"]))
-    			mark_json.append(z)
-    			
-    		# if "coordinates" in x["_source"].keys():
-#     			print x["_source"]
-		#u_o["user_object"]["_source"]["status"]["coordinates"]
-    markers = list(set(markers))
-    #print markers
-    m_list = [{'lat': 37.4419, 'lng': -122.1419}]
-    #print user_obj
-    #print len(markers)
-    #print markers[0]
-    #print mark_json[0]
-    print len(mark_json)
-    temp = {v['screen_name']:v for v in mark_json}.values()
-    mark_json = temp
-    print len(mark_json)
-    return render_template('sample.html', result = user_objects, m_list = markers, mark_json = mark_json)
-    
-    
+# @app.route('/')
+# def student():
+#     print "HI"
+#     print "HI"
+#     user_objects = es_users.getAllUserScreenNames()
+#     markers = []
+#     mark_json = []
+#     for u_o in user_objects:
+#     	for x in es_users.getStoredTweets(u_o["screen_name"]):
+#     		x = json.dumps(x)
+#     		x = json.loads(x)
+#     		#print x 
+#     		if x["_source"]["geo"] is not None:
+#     			z = {}
+#     			z["user_img"] = str(u_o["user_object"]["_source"]["profile_image_url"])
+#     			#print z["user_img"]
+#     			z["screen_name"] = str(u_o["screen_name"])
+#     			z["lat"] = x["_source"]["geo"]["coordinates"][0]
+#     			z["lng"] = x["_source"]["geo"]["coordinates"][1]
+#     			markers.append(tuple(x["_source"]["geo"]["coordinates"]))
+#     			mark_json.append(z)
+#     			
+#     		# if "coordinates" in x["_source"].keys():
+# #     			print x["_source"]
+# 		#u_o["user_object"]["_source"]["status"]["coordinates"]
+#     markers = list(set(markers))
+#     #print markers
+#     m_list = [{'lat': 37.4419, 'lng': -122.1419}]
+#     #print user_obj
+#     #print len(markers)
+#     #print markers[0]
+#     #print mark_json[0]
+#     print len(mark_json)
+#     temp = {v['screen_name']:v for v in mark_json}.values()
+#     mark_json = temp
+#     print len(mark_json)
+#     return render_template('sample.html', result = user_objects, m_list = markers, mark_json = mark_json)
+      
 def getAvgSentiment(user):
 	all_tweets = es_users.getStoredTweets(user)
 	print len(all_tweets)
@@ -126,7 +121,6 @@ def result():
       #return hello_name(result_link)
       return redirect(url_for('user_profile', user=result_link))
 #       return render_template("user_profile", result = result)
-
 
 
 @app.route('/fullmap')

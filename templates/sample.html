@@ -108,13 +108,14 @@
 			for (var i = 0; i < count; i++){
 			var x = {% autoescape false %}  {{mark_json|safe}}{% endautoescape %}[i]['screen_name']
 			console.log(x);
+
 				try{
 					var lat = {% autoescape false %} {{mark_json|safe }}{% endautoescape %}[i]['lat']
 					var lng = {% autoescape false %}  {{mark_json|safe}}{% endautoescape %}[i]['lng']
 					var screen_name = {% autoescape false %}  {{mark_json|safe}}{% endautoescape %}[i]['screen_name']
 					//console.log(lat + " " + lng);
 					var user_img = {% autoescape false %}  {{mark_json|safe}}{% endautoescape %}[i]['user_img']
-					console.log(screen_name);
+					//console.log(screen_name);
 					var contentString = '<div>'+
 						'<div>'+
 						'</div>'+
@@ -123,7 +124,7 @@
 						'<p><img src="'+ user_img + '" onerror="errorFunction(this)"></p>' +
 						'</div>'+
 						'</div>';
-					console.log(contentString)
+					//console.log(contentString)
 
 
 					var marker = new google.maps.Marker({
