@@ -49,7 +49,7 @@
           <div> <br> </div>
 
      <!-- <div> {{user["_source"]["profile_image_url"]}}</div> -->
-     <div align="center"> <img src="{{user["_source"]["profile_image_url"]}}" alt="Mountain View" style="width:150px;height:150px;"></div>
+     <div align="center"> <img src="{{user["_source"]["profile_image_url"]|replace("_normal", "_bigger")}}"  alt="Mountain View" style="width:150px;height:150px;"></div>
      <div> <br> </div>
      <div  align="center">
         <table border = 1,  align="center">

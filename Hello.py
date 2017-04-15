@@ -113,16 +113,17 @@ def user_profile(user):
 
 @app.route('/result',methods = ['POST', 'GET'])
 def result():
+   print "hi"
    if request.method == 'POST':
       result = request.form
+      print result["SCREEN_NAME"] 
       result_link = result["SCREEN_NAME"]
       print result_link
       print url_for('user_profile', user=result_link)
       #return hello_name(result_link)
       return redirect(url_for('user_profile', user=result_link))
 #       return render_template("user_profile", result = result)
-
-
+    
 @app.route('/fullmap')
 def fullmap():
 # 	fullmap = Map(
