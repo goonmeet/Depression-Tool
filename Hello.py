@@ -17,8 +17,13 @@ import re
 import pickle
 import os.path
 from wordcloud import WordCloud
-
-model = pickle.load(open("models/symptoms/symptoms_SVM.pkl","rb"))
+from nltk.corpus import stopwords
+stop = set(stopwords.words('english'))
+stop = list(stop)
+stop.append("http")
+stop.append("https")
+stop = [str(i).strip() for i in stop]
+# model = pickle.load(open("models/symptoms/symptoms_SVM.pkl","rb"))
 print "Model for syptoms loaded"
 
 app = Flask(__name__)
@@ -33,11 +38,11 @@ feat_select = SelectKBest(chi2, k=4000)
 scaler = preprocessing.MinMaxScaler(feature_range=(0,1))
 
 def tag_cloud(user, text):
-	all_tweets = es_users.getStoredTweetsSize(user, 1000)
+	all_tweets = es_users.getStoredTweetsSize(user, 500)
 	text = ""
 	for x in all_tweets:
 		text = str(text) +  " " + str(x["_source"]["text"])
-	wordcloud = WordCloud(scale = 1.5).generate(text)
+	wordcloud = WordCloud(scale = 1.5, stopwords=stop).generate(text)
 	image = wordcloud.to_image()
 	image.save("static/" + user + ".JPEG")
 	return ("static/" + user + ".JPEG")
@@ -55,6 +60,7 @@ def demo():
     user_objects.sort(key=lambda x: x['tweet_count'], reverse=True)
     pigeo_objects.sort(key=lambda x: x['tweet_count'], reverse=True)
     place_user_objects.sort(key=lambda x: x['tweet_count'], reverse=True)
+    place_user_objects = {v['screen_name']:v for v in place_user_objects}.values()
     return render_template('demo.html', mark_json = user_objects, place_user_objects = place_user_objects, pigeo_objects = pigeo_objects)
 
 @app.route('/sample')

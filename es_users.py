@@ -4,7 +4,7 @@ from elasticsearch_dsl.connections import connections
 import json
 import requests, pigeo
 es = Elasticsearch(['localhost:9201'])
-pigeo.load_model()
+#pigeo.load_model()
 stored_tweetCounts = {}
 
 def pigeo_result(screen_name):
@@ -240,19 +240,24 @@ def getUserProfile(screen_name):
     return user
 
 def getStoredTweets(screen_name):
-    res = es.search(size = 1000, scroll = '3m', index="depressed_tweets", doc_type="tweepyTweet", body={"query": { "match": {"user.screen_name": screen_name}}}, request_timeout=160)
-    s_id = res['_scroll_id']
-    scroll_size = res['hits']['total']
-    #print res
-    all_tweets = res['hits']['hits']
-    while (scroll_size > 0):
-        res = es.scroll(scroll_id = s_id, scroll = '3m' , request_timeout=160)
-        s_id = res['_scroll_id']
-        scroll_size = len(res['hits']['hits'])
-        tweets = res['hits']['hits']
-        all_tweets = all_tweets + tweets
-        print "scroll_size: " + str(scroll_size)
-    return all_tweets
+	print screen_name
+	s_id = 0
+	try:
+		res = es.search(size = 1000, scroll = '3m', index="depressed_tweets", doc_type="tweepyTweet", body={"query": { "match": {"user.screen_name": screen_name}}}, request_timeout=160)
+		s_id = res['_scroll_id']
+		scroll_size = res['hits']['total']
+    	#print res
+		all_tweets = res['hits']['hits']
+		while (scroll_size > 0):
+			res = es.scroll(scroll_id = s_id, scroll = '3m' , request_timeout=160)
+			s_id = res['_scroll_id']
+			scroll_size = len(res['hits']['hits'])
+			tweets = res['hits']['hits']
+			all_tweets = all_tweets + tweets
+			print "scroll_size: " + str(scroll_size)
+	except:
+		pass
+	return all_tweets
 
 def getStoredTweetsSize(screen_name, size):
     res = es.search(size = size, index="depressed_tweets", doc_type="tweepyTweet", body={"query": { "match": {"user.screen_name": screen_name}}}, request_timeout=160)
@@ -282,10 +287,14 @@ def parse_tweet_obj(screen_name):
 	return all_user_tweet_obj
 
 def getStoredTweetCount(screen_name):
-    res = es.search(index="depressed_tweets", doc_type="tweepyTweet", body={"query": { "match": {"user.screen_name": screen_name}}}, request_timeout=60)
-    #print res
-    tweet_count = res['hits']['total']
-    return tweet_count
+	tweet_count = 0
+	try:
+		res = es.search(index="depressed_tweets", doc_type="tweepyTweet", body={"query": { "match": {"user.screen_name": screen_name}}}, request_timeout=60)
+    	#print res
+		tweet_count = res['hits']['total']
+	except:
+		pass
+	return tweet_count
 
 def getMax_Id(screen_name):
     res = es.search(index="depressed_tweets", doc_type="tweepyTweet", body={"query": { "match": {"user.screen_name": screen_name}}}, request_timeout=60)

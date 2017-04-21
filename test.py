@@ -1,7 +1,7 @@
 import es_users
 import goldstandard_users
-goldstandard_users.get_yes_users()
-# goldstandard_users.main("no")
+# goldstandard_users.get_yes_users()
+goldstandard_users.main("no")
 # print "A"
 # a, users_with_status_coordinates = es_users.getAllUsers_WithCoordinates()
 # print "B"

@@ -343,9 +343,9 @@ def top_words_in_description(user_profile_json):
 # 	print Counter(hashtags)
 # 	print dict(Counter(words))
 # 	sys.exit()
-	return	dict(Counter(words))				
-
-def main(user_type):
+	return	dict(Counter(words))	
+				
+def count(user_type):
 # 	test_data = get_user_data(get_all_user_names_test())
 # 	print "Done with test data frame"
 	df_ric = pd.read_csv("profile_goldstandard_ric.csv", quotechar="\"", header = 0, error_bad_lines=False, encoding='utf-8', engine='c')
@@ -354,13 +354,36 @@ def main(user_type):
 	foo = "DEPRESSED/NO"
 # 	serverNumber = sys.argv[1]
 	yes_df =  df_ric.loc[df_ric["DEPRESSED/NO"] == user_type]
+	yes_df = yes_df.reset_index()
 	print len(yes_df)
 	yes_df_des = (df_des.loc[df_des["DEPRESSED/NO"] == user_type])
-	yes_df = yes_df.append(yes_df_des)
+	yes_df = yes_df.append(yes_df_des, ignore_index = True)
 	print len(yes_df)
-	yes_df = yes_df.append(df_meet)
+	yes_df = yes_df.append(df_meet, ignore_index = True)
 	print len(yes_df)
-	print df_meet.loc[0]['USER_ID']
+	for index, row in yes_df.iterrows():
+		print index
+
+def main(user_type):
+	print user_type
+# 	test_data = get_user_data(get_all_user_names_test())
+# 	print "Done with test data frame"
+	df_ric = pd.read_csv("profile_goldstandard_ric.csv", quotechar="\"", header = 0, error_bad_lines=False, encoding='utf-8', engine='c')
+	df_des = pd.read_csv("profile_goldstandard_des.csv", quotechar="\"", header = 0, error_bad_lines=False, encoding='utf-8', engine='c')
+	df_meet = pd.read_csv("profile_goldstandard_meet.csv", quotechar="\"", header = 0, error_bad_lines=False, encoding='utf-8', engine='c')
+	foo = "DEPRESSED/NO"
+# 	serverNumber = sys.argv[1]
+	yes_df =  df_ric.loc[df_ric["DEPRESSED/NO"] == user_type]
+	yes_df = yes_df.reset_index()
+	print len(yes_df)
+	yes_df_des = (df_des.loc[df_des["DEPRESSED/NO"] == user_type])
+	yes_df = yes_df.append(yes_df_des, ignore_index = True)
+	print len(yes_df)
+	user_type_list = []
+	if user_type == "yes":
+		yes_df = yes_df.append(df_meet, ignore_index = True)
+		print df_meet.loc[0]['USER_ID']
+	print len(yes_df)
 	#no_df =  df.loc[df['DEPRESSED/NO'] == "no"]
 	all_words = []
 	top_discript = {}
@@ -368,12 +391,24 @@ def main(user_type):
 	total_cusswords_count = 0
 	for index, row in yes_df.iterrows():
 		user_profile_json = es_users.getUserProfile(row['USER_ID'])
+		fo = open(user_type + "_users.txt", 'r')
+		user_type_list = [line.strip() for line in fo] 
 # 		print user_profile_json
 		if len(user_profile_json) == 0:
 			print row['USER_ID']
+			continue
+		elif str(row['USER_ID']) in user_type_list:
+			print row['USER_ID']
+			print "Already done"
+			continue
 		else:
 # 			print all_words
 # 			sys.exit()
+			print row['USER_ID']
+			fo.close()
+			user_type_list.append(row['USER_ID'])
+			user_type_list_thefile = open(user_type + "_users.txt", 'w')
+			user_type_list_thefile.write(str('\n'.join(user_type_list)))
 			words, cusswords_count = top_words_in_tweets(row['USER_ID'])
 			total_cusswords_count = total_cusswords_count + cusswords_count
 			all_words = all_words + words
