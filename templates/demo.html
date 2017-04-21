@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html>
+   <head>
+      <title>Depression Visualization Tool</title>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <link href="static/css/bootstrap.min.css" rel="stylesheet" media="screen">
+      <link href="https://fonts.googleapis.com/css?family=Raleway" rel="stylesheet">
+      <link href="https://fonts.googleapis.com/css?family=Kanit|Raleway" rel="stylesheet">
+      <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+      <script src="static/js/jquery.js"></script>
+      <script src="static/js/bootstrap.min.js"></script>
+   </head>
+   <style>
+      body {
+      padding-top: 50px;
+      background: url(https://www.toptal.com/designers/subtlepatterns/patterns/congruent_outline.png) repeat 0 0;
+      }
+      container {
+      color: white
+      }
+      col-md-4 {
+      color: white
+      }
+   </style>
+   <body onload="initMap()">
+      <div class="navbar navbar-inverse navbar-fixed-top">
+         <div class="container">
+            <div class="navbar-header">
+               <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+               <span class="icon-bar"></span>
+               <span class="icon-bar"></span>
+               <span class="icon-bar"></span>
+               </button>
+               <a class="navbar-brand" href="#">Depression Tool</a>
+            </div>
+            <div class="collapse navbar-collapse">
+               <ul class="nav navbar-nav navbar-right">
+                  <li class="active"><a href="#">Home</a>
+                  </li>
+                  <li><a href="#about">About</a>
+                  </li>
+                  <li><a href="#contact">Contact</a>
+                  </li>
+               </ul>
+            </div>
+            <!--/.nav-collapse -->
+         </div>
+      </div>
+      <div class="jumbotron" style="background-color: #BAE0FF">
+         <div class="container">
+            <h1>Depression Visualization Tool</h1>
+            <p class="lead">A tool for visualizing depression. </p>
+         </div>
+      </div>
+      <div class="container" id="map-canvas" style="width:75%; height:500px;"></div>
+      <div> <br> </div>
+      <div class="container-fluid">
+         <div class="row">
+            <div class="col-sm-4">
+               <table align="center" class="list-group">
+                  <tr style="background-color: rgb(224,89,84); color: white; font-family: 'Kanit', sans-serif;" class="list-group-item">
+                     <th align="center" style="font-family: 'Raleway', sans-serif; font-family: 'Kanit', sans-serif; font-size: 24px"> Geo Users </th>
+                  </tr>
+                  {% for key in mark_json %}
+                  <tr class="list-group-item" style="color: black; font-family: 'Raleway', sans-serif; font-family: 'Kanit', sans-serif; font-size: 18px">
+                     <th><a href="http://localhost:5000/{{key["screen_name"]}}">@{% autoescape false %}{{key["screen_name"]|safe }}{% endautoescape %}<span class="badge"> {{key["tweet_count"]}} </a> </span> </th>
+                  </tr>
+                  {% endfor %}
+               </table>
+            </div>
+            <div class="col-sm-4">
+               <table align="center" class="list-group">
+                  <tr style="background-color: #9eeefd; color: white; font-family: 'Kanit', sans-serif;" class="list-group-item">
+                     <th align="center" style="font-family: 'Raleway', sans-serif; font-family: 'Kanit', sans-serif; font-size: 24px"> Location Users </th>
+                  </tr>
+                  {% for key in place_user_objects %}
+                  <tr class="list-group-item" style="color: black; font-family: 'Raleway', sans-serif; font-family: 'Kanit', sans-serif; font-size: 18px">
+                     <th><a href="http://localhost:5000/{{key["screen_name"]}}">@{% autoescape false %}{{key["screen_name"]|safe }}{% endautoescape %}<span class="badge"> {{key["tweet_count"]}} </a> </span> </th>
+                  </tr>
+                  {% endfor %}
+               </table>
+            </div>
+            <div class="col-sm-4">
+               <table align="center" class="list-group">
+               <tr style="background-color: rgb(125,178,73); color: white; font-family: 'Kanit', sans-serif;" class="list-group-item">
+                  <th align="center" style="font-family: 'Raleway', sans-serif; font-family: 'Kanit', sans-serif; font-size: 24px"> Pigeo Users </th>
+               </tr>
+               {% for key in pigeo_objects %}
+               <tr class="list-group-item" style="color: black; font-family: 'Raleway', sans-serif; font-family: 'Kanit', sans-serif; font-size: 18px">
+                  <th><a href="http://localhost:5000/{{key["screen_name"]}}">@{% autoescape false %}{{key["screen_name"]|safe }}{% endautoescape %}<span class="badge"> {{key["tweet_count"]}} </a> </span> </th>
+               </tr>
+               {% endfor %}
+               </table
+            </div>
+         </div>
+      </div>
+      <!-- 
+         <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.googlemap/1.5/jquery.googlemap.js"></script>
+         -->
+      <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDYRyuCbFOh_8ivTTnm1YjsXv4kKYWoPYc" async defer></script>
+
+</script>
+		<script type="text/javascript">
+			function errorFunction(image) {
+			console.log("hi");
+			image.onerror = "";
+    image.src = "https://blog.za3k.com/wp-content/uploads/2015/03/default_profile_3.png";
+    console.log(image);
+			}
+			// initialize map
+			function initMap() {
+			    map = new google.maps.Map(document.getElementById('map-canvas'), {
+			        zoom: 3,
+			        center: {
+			            lat: 0,
+			            lng: 0
+			        },
+			        backgroundColor: '#fcfcfc',
+			        scrollwheel: true,
+			        fullscreenControl: true,
+			        fullscreenControlOptions: true,
+			        rotateControl: true,
+			        rotateControlOptions: true,
+			        tilt: 45
+			    });
+
+			count_mark_json = {% autoescape false %}{{mark_json|safe|length}}{% endautoescape %};
+			count_place_user_objects = {% autoescape false %}{{place_user_objects|safe|length}}{% endautoescape %};
+			count_pigeo_objects = {% autoescape false %}{{pigeo_objects|safe|length}}{% endautoescape %};
+
+			for (var i = 0; i < count_mark_json; i++){
+			//console.log(x);
+				try{
+					var lat = {% autoescape false %} {{mark_json|safe }}{% endautoescape %}[i]['lat']
+					var lng = {% autoescape false %}  {{mark_json|safe}}{% endautoescape %}[i]['lng']
+					var screen_name = {% autoescape false %}  {{mark_json|safe}}{% endautoescape %}[i]['screen_name']
+					//console.log(lat + " " + lng);
+					var user_img = {% autoescape false %}  {{mark_json|safe}}{% endautoescape %}[i]['user_img']
+					//console.log(screen_name);
+					var contentString = '<div>'+
+						'<div>'+
+						'</div>'+
+						'<h1 class="firstHeading"><a href="http://localhost:5000/'+ screen_name + '"</a>@' + screen_name + '</h1>'+
+						'<div>'+
+						'<p><a href="http://localhost:5000/'+ screen_name + '"><img src="'+ user_img + '" onerror="errorFunction(this)"></a></p>' +
+						'</div>'+
+						'</div>';
+					//console.log(contentString)
+
+
+					var marker = new google.maps.Marker({
+							map: map,
+							position: {
+								lat: lat,
+								lng: lng
+							},
+							title: 'screen_name'
+						});
+					marker.content = contentString
+					var infoWindow = new google.maps.InfoWindow();
+google.maps.event.addListener(marker, 'click', function () {
+                                infoWindow.setContent(this.content);
+                                infoWindow.open(this.getMap(), this);
+                            });
+// 					google.maps.event.addListener( marker, 'click', function() {	
+// 							infowindow.setContent(contentString);			
+// 							infowindow.open( map, marker );	}
+// 					);		
+// 					
+					//google.maps.event.addListener.addListener('click', function(marker) {
+					  //infowindow.open(map, marker);});
+
+				} catch (e) {}
+			}
+			for (var i = 0; i < count_place_user_objects; i++){
+				try{
+					var lat = {% autoescape false %} {{place_user_objects|safe }}{% endautoescape %}[i]['lat']
+					var lng = {% autoescape false %}  {{place_user_objects|safe}}{% endautoescape %}[i]['lng']
+					var screen_name = {% autoescape false %}  {{place_user_objects|safe}}{% endautoescape %}[i]['screen_name']
+					var user_img = {% autoescape false %}  {{place_user_objects|safe}}{% endautoescape %}[i]['user_img']
+					var contentString = '<div>'+
+						'<div>'+
+						'</div>'+
+						'<h1 class="firstHeading"><a href="http://localhost:5000/'+ screen_name + '"</a>@' + screen_name + '</h1>'+
+						'<div>'+
+						'<p><a href="http://localhost:5000/'+ screen_name + '"><img src="'+ user_img + '" onerror="errorFunction(this)"></a></p>' +
+						'</div>'+
+						'</div>';
+				       var icon = {
+    url: "static/teal-dot-big.png", // url
+    scaledSize: new google.maps.Size(20, 32), // scaled size
+    origin: new google.maps.Point(0,0), // origin
+    anchor: new google.maps.Point(0, 0) // anchor
+};
+
+					var marker = new google.maps.Marker({
+							map: map,
+							position: {
+								lat: lat,
+								lng: lng
+							},
+							title: 'screen_name',
+							icon: icon//'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
+
+						});
+					marker.content = contentString
+					var infoWindow = new google.maps.InfoWindow();
+google.maps.event.addListener(marker, 'click', function () {
+                                infoWindow.setContent(this.content);
+                                infoWindow.open(this.getMap(), this);
+                            });
+// 					google.maps.event.addListener( marker, 'click', function() {	
+// 							infowindow.setContent(contentString);			
+// 							infowindow.open( map, marker );	}
+// 					);		
+// 					
+					//google.maps.event.addListener.addListener('click', function(marker) {
+					  //infowindow.open(map, marker);});
+
+				} catch (e) {}
+			}
+			for (var i = 0; i < count_pigeo_objects; i++){
+				try{
+					var lat = {% autoescape false %} {{pigeo_objects|safe }}{% endautoescape %}[i]['lat']
+					var lng = {% autoescape false %}  {{pigeo_objects|safe}}{% endautoescape %}[i]['lng']
+					var screen_name = {% autoescape false %}  {{pigeo_objects|safe}}{% endautoescape %}[i]['screen_name']
+					var user_img = {% autoescape false %}  {{pigeo_objects|safe}}{% endautoescape %}[i]['user_img']
+					var contentString = '<div>'+
+						'<div>'+
+						'</div>'+
+						'<h1 class="firstHeading"><a href="http://localhost:5000/'+ screen_name + '"</a>@' + screen_name + '</h1>'+
+						'<div>'+
+						'<p><a href="http://localhost:5000/'+ screen_name + '"><img src="'+ user_img + '" onerror="errorFunction(this)"></a></p>' +
+						'</div>'+
+						'</div>';
+				       var icon = {
+    url: "static/green-dot-big.png", // url
+    scaledSize: new google.maps.Size(20, 32), // scaled size
+    origin: new google.maps.Point(0,0), // origin
+    anchor: new google.maps.Point(0, 0) // anchor
+};
+
+					var marker = new google.maps.Marker({
+							map: map,
+							position: {
+								lat: lat,
+								lng: lng
+							},
+							title: 'screen_name',
+							icon: icon
+
+						});
+					marker.content = contentString
+					var infoWindow = new google.maps.InfoWindow();
+google.maps.event.addListener(marker, 'click', function () {
+                                infoWindow.setContent(this.content);
+                                infoWindow.open(this.getMap(), this);
+                            });
+				} catch (e) {}
+			}
+}			</script>
+      <div>
+         <br> 
+      </div>
+   </body>
+   
+</html>

@@ -62,6 +62,11 @@
           {% endfor %}
        </table>
        <p style="color: white; font-family: 'Raleway', sans-serif; font-family: 'Kanit', sans-serif; font-size: 18px"> Average Sentiment for {{user["_id"]}}'s tweets: {{avg_sent}} </p>
+     </divalign="center">
+          {% if image_name|length > 0 %}
+          <img src="../{{image_name}}" alt="Mountain View" style="width:504px;height:228px;">
+            {% endif %}
+
      </div>
       </body>
 </html>

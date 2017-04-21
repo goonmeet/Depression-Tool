@@ -4,8 +4,15 @@ from elasticsearch_dsl.connections import connections
 import json
 import requests, pigeo
 es = Elasticsearch(['localhost:9201'])
-#pigeo.load_model()
+pigeo.load_model()
 stored_tweetCounts = {}
+
+def pigeo_result(screen_name):
+	pigeo_res = pigeo.geo(str('@' + screen_name))
+# 	pigeo_res = {} 
+# 	pigeo_res["lat"] = 0
+# 	pigeo_res["lon"] = 0
+	return pigeo_res["lat"], pigeo_res["lon"]
 
 def getAllCoordinates():
 	a, users_with_status_coordinates = getAllUsers_WithCoordinates()
@@ -225,6 +232,12 @@ def getUser(screen_name):
     #print res
     user = res['hits']["hits"]
     return user
+    
+def getUserProfile(screen_name):
+    res = es.search(index="user_profiles", doc_type="Self_Reported_Profiles_40k", body={"query": { "match": {"_id" : screen_name}}}, request_timeout=60)
+    #print res
+    user = res['hits']["hits"]
+    return user
 
 def getStoredTweets(screen_name):
     res = es.search(size = 1000, scroll = '3m', index="depressed_tweets", doc_type="tweepyTweet", body={"query": { "match": {"user.screen_name": screen_name}}}, request_timeout=160)
@@ -242,7 +255,7 @@ def getStoredTweets(screen_name):
     return all_tweets
 
 def getStoredTweetsSize(screen_name, size):
-    res = es.search(size = 10, index="depressed_tweets", doc_type="tweepyTweet", body={"query": { "match": {"user.screen_name": screen_name}}}, request_timeout=160)
+    res = es.search(size = size, index="depressed_tweets", doc_type="tweepyTweet", body={"query": { "match": {"user.screen_name": screen_name}}}, request_timeout=160)
     all_tweets = res['hits']['hits']
     return all_tweets
 

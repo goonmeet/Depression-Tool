@@ -33,42 +33,16 @@
 		}	
 			</style>
    <body>
-<!-- 
-   <div style = "display: block;margin-left: auto;margin-right: auto; " action = "http://localhost:5000/result" method = "POST" autocomplete="on">
-   <div class="input-group" action = "http://localhost:5000/result" method = "POST" autocomplete="on">
-  <span class="input-group-addon" id="sizing-addon1">@</span>
-  <input type="text" class="form-control" placeholder="username" aria-describedby="basic-addon1" style = "width:300px; name = "SCREEN_NAME">
-</div> </div>
- -->
-<!-- 
-
-      <form action = "http://localhost:5000/result" method = "POST" autocomplete="on">
-      
-<!~~ 
-		 <p class = "name">SCREEN_NAME <input class="field_text" type = "text" name = "SCREEN_NAME" /></p>
- ~~>
-
-   <div class="input-group" action = "http://localhost:5000/result" method = "POST" autocomplete="on" value = "submit">
-  <span class="input-group-addon" id="sizing-addon1">@</span>
-  <input type="text" class="form-control" placeholder="username" aria-describedby="basic-addon1" style = "width:300px; name = "SCREEN_NAME">
-</div>
-
-<!~~ 
-         <p class = "name">CONSUMER_KEY <input type = "text" name = "CONSUMER_KEY" /></p>
-         <p class = "name">CONSUMER_SECRET <input type = "text" name = "CONSUMER_SECRET" /></p>
-         <p class = "name">OAUTH_TOKEN <input type = "text" name = "OAUTH_TOKEN" /></p>
-         <p class = "name">OAUTH_TOKEN_SECRET <input type ="text" name = "OAUTH_TOKEN_SECRET" /></p>
- ~~>
-<!~~ 
-         <p class = "button"><input type = "submit" value = "submit" /></p>
- ~~>
-           <button type="submit" class="btn btn-default">Submit</button>
-
-      </form>
-      
- -->
- 
- <form class="form-inline" action = "http://localhost:5000/result" method = "POST" autocomplete="on" >
+<div class="container-fluid">
+  <section class="jumbotron text-center">
+      <div class="container">
+        <h1 class="jumbotron-heading">User Search</h1>
+        <p class="lead text-muted">Access user's in our database to view their page on this web service. If the user is not our database, you will be prompted to add the user to the database and service (if you chose to do so).</p>
+        	{% if error %}
+    <script>confirm("User not found. Would you like to add this user to the service?"); </script>
+  {% endif %}
+        <p>
+        <form class="form-inline" action = "http://localhost:5000/result" method = "POST" autocomplete="on" >
   <div class="form-group">
     <label class="sr-only">Username</label>
     <div class="input-group">
@@ -79,7 +53,8 @@
   </div>
   <button type="submit" class="btn btn-primary">Submit</button>
 </form>
- 
- 
+        </p>
+      </div>
+    </section>
    </body>
 </html>

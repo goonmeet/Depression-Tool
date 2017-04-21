@@ -1,10 +1,25 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for
 from flask_googlemaps import GoogleMaps, Map, icons
 from flask_bootstrap import Bootstrap
-import tweepy, json
+import tweepy, json, preprocess
 import es_users, textblob
 from textblob import TextBlob
-import requests
+import requests, pickle
+import goldstandard_users
+from jinja2 import Template
+import pandas as pd
+from bs4 import BeautifulSoup
+from nltk.corpus import stopwords
+from sklearn import preprocessing
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.feature_selection.univariate_selection import chi2, SelectKBest
+import re
+import pickle
+import os.path
+from wordcloud import WordCloud
+
+model = pickle.load(open("models/symptoms/symptoms_SVM.pkl","rb"))
+print "Model for syptoms loaded"
 
 app = Flask(__name__)
 Bootstrap(app)
@@ -13,16 +28,40 @@ ACCESS_SECRET = ""
 CONSUMER_KEY = ""
 CONSUMER_SECRET = ""
 KEYWORDS = []
+count_vec = TfidfVectorizer(analyzer="word", max_features=10000, ngram_range=(1,3), sublinear_tf=True)    
+feat_select = SelectKBest(chi2, k=4000)
+scaler = preprocessing.MinMaxScaler(feature_range=(0,1))
 
+def tag_cloud(user, text):
+	all_tweets = es_users.getStoredTweetsSize(user, 1000)
+	text = ""
+	for x in all_tweets:
+		text = str(text) +  " " + str(x["_source"]["text"])
+	wordcloud = WordCloud(scale = 1.5).generate(text)
+	image = wordcloud.to_image()
+	image.save("static/" + user + ".JPEG")
+	return ("static/" + user + ".JPEG")
+	
 @app.route('/form')
 def form():
    return render_template('form.html')
+
+
+
+@app.route('/demo')
+def demo():
+	# All user's whose last status had a geo coordinate
+    user_objects, place_user_objects, pigeo_objects = goldstandard_users.yes_users()
+    user_objects.sort(key=lambda x: x['tweet_count'], reverse=True)
+    pigeo_objects.sort(key=lambda x: x['tweet_count'], reverse=True)
+    place_user_objects.sort(key=lambda x: x['tweet_count'], reverse=True)
+    return render_template('demo.html', mark_json = user_objects, place_user_objects = place_user_objects, pigeo_objects = pigeo_objects)
 
 @app.route('/sample')
 def sample():
 	# All user's whose last status had a geo coordinate
     user_objects, place_user_objects = es_users.getAllCoordinates()
-    return render_template('new_home.html', result = user_objects, mark_json = user_objects, place_user_objects = place_user_objects)
+    return render_template('new_home.html', mark_json = user_objects, place_user_objects = place_user_objects)
 
 # @app.route('/')
 # def student():
@@ -62,33 +101,52 @@ def sample():
 #     print len(mark_json)
 #     return render_template('sample.html', result = user_objects, m_list = markers, mark_json = mark_json)
       
-def getAvgSentiment(user):
-	all_tweets = es_users.getStoredTweets(user)
+def getAvgSentiment(user, all_tweets):
+# 	all_tweets = es_users.getStoredTweets(user)
 	print len(all_tweets)
 	sum_senti = 0
+	image_name = ""
+	tweets = []
+	print "Avg Senti"
+	if len(all_tweets) > 1001:
+		all_tweets = all_tweets[0:1000]
 	for tweet in all_tweets:
-		blob = TextBlob(tweet["_source"]["text"])
-    	if blob.detect_language() is not "en":
+		# processed_tweet = preprocess.preprocess_tweet(tweet["_source"]["text"])
+# 		print processed_tweet
+# 		pred = model.predict(processed_tweet)
+# 		print pred[0]
+# 		sys.exit()
+		try:
+			if tweet["_source"]["text"] not in tweets:
+				tweets.append(tweet["_source"]["text"])
+			blob = TextBlob(tweet["_source"]["text"])
+			if blob.detect_language() is not "en":
+				blob = blob.translate(to='en')
+				tweet["_source"]["text"] = blob
+		except:
+			pass
     		#print blob
-    		try:
-    			blob = blob.translate(to='en')
-    			tweet["_source"]["text"] = blob
-    		except textblob.exceptions.NotTranslated:
-    			pass
-    		#print blob
-    	for sentence in blob.sentences:
-    		sum_senti = sum_senti + sentence.sentiment.polarity
-    		print sum_senti
+		for sentence in blob.sentences:
+			sum_senti = sum_senti + sentence.sentiment.polarity
+			print sum_senti
 	avg_sent = (sum_senti/len(all_tweets))
+	if os.path.exists("static/" + user + ".JPEG"):
+		image_name = ("static/" + user + ".JPEG")
+	else:
+		print "IMG"
+		image_name = tag_cloud(user, tweets)
 	print avg_sent
-	return avg_sent
+	print image_name
+	return avg_sent, image_name
 
 @app.route('/<user>')
 def user_profile(user):
     print "I'm running..."
     user_profile = es_users.getUser(user)
+    if len(user_profile) == 0:
+    	return render_template('form.html', error = 1)
     #if len(user_profile) > 0:
-    tweets = es_users.getStoredTweetsSize(user, 100)
+    tweets = es_users.getStoredTweetsSize(user, 10)
     print len(tweets)
     eng_tweets = []
     for tweet in tweets:
@@ -103,12 +161,12 @@ def user_profile(user):
     		#print blob
     	eng_tweets.append(tweet)
     eng_tweets = eng_tweets[:10]
-    avg_sent = getAvgSentiment(user)
+    avg_sent, image_name = getAvgSentiment(user, tweets)
     print avg_sent
     #print user
     #print user_profile
     #print user_profile[0]
-    return render_template('user_profile.html', user = user_profile[0], tweets = eng_tweets, avg_sent = avg_sent)
+    return render_template('user_profile.html', user = user_profile[0], tweets = eng_tweets, avg_sent = avg_sent, image_name = image_name)
     #return None
 
 @app.route('/result',methods = ['POST', 'GET'])
@@ -124,123 +182,6 @@ def result():
       return redirect(url_for('user_profile', user=result_link))
 #       return render_template("user_profile", result = result)
     
-@app.route('/fullmap')
-def fullmap():
-# 	fullmap = Map(
-#         identifier="catsmap",
-#         lat=37.4419,
-#         lng=-122.1419,
-#         markers=[
-#             {
-#                 'icon': 'http://maps.google.com/mapfiles/ms/icons/green-dot.png',
-#                 'lat':  37.4419,
-#                 'lng':  -122.1419,
-#                 'infobox': "<img src='cat1.jpg' />"
-#             },
-#             {
-#                 'icon': 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png',
-#                 'lat': 37.4300,
-#                 'lng': -122.1400,
-#                 'infobox': "<img src='cat2.jpg' />"
-#             },
-#             {
-#                 'icon': 'http://maps.google.com/mapfiles/ms/icons/yellow-dot.png',
-#                 'lat': 37.4500,
-#                 'lng': -122.1350,
-#                 'infobox': "<img src='cat3.jpg' />"
-#             }
-#         ]
-# 	)
-    fullmap = Map(
-        identifier="fullmap",
-        varname="fullmap",
-        style=(
-            "height:100%;"
-            "width:100%;"
-            "top:0;"
-            "left:0;"
-            "position:absolute;"
-            "z-index:200;"
-        ),
-        lat=37.4419,
-        lng=-122.1419,
-        markers=[
-            {
-                'icon': '//maps.google.com/mapfiles/ms/icons/green-dot.png',
-                'lat': 37.4419,
-                'lng': -122.1419,
-                'infobox': "Hello I am <b style='color:green;'>GREEN</b>!"
-            },
-            {
-                'icon': '//maps.google.com/mapfiles/ms/icons/blue-dot.png',
-                'lat': 37.4300,
-                'lng': -122.1400,
-                'infobox': "Hello I am <b style='color:blue;'>BLUE</b>!"
-            },
-            {
-                'icon': icons.dots.yellow,
-                'title': 'Click Here',
-                'lat': 37.4500,
-                'lng': -122.1350,
-                'infobox': (
-                    "Hello I am <b style='color:#ffcc00;'>YELLOW</b>!"
-                    "<h2>It is HTML title</h2>"
-                    "<img src='//placehold.it/50'>"
-                    "<br>Images allowed!"
-                )
-            }
-        ],
-        # maptype = "TERRAIN",
-        # zoom="5"
-    )
-
-    return render_template('example_fullmap.html', fullmap=fullmap)
-
-#     fullmap = Map(
-#         identifier="fullmap",
-#         varname="fullmap",
-#         style=(
-#             "height:100%;"
-#             "width:100%;"
-#             "top:0;"
-#             "left:0;"
-#             "position:absolute;"
-#             "z-index:200;"
-#         ),
-#         lat=37.4419,
-#         lng=-122.1419,
-#         markers=[
-#             {
-#                 'icon': '//maps.google.com/mapfiles/ms/icons/green-dot.png',
-#                 'lat': 37.4419,
-#                 'lng': -122.1419,
-#                 'infobox': "Hello I am <b style='color:green;'>GREEN</b>!"
-#             },
-#             {
-#                 'icon': '//maps.google.com/mapfiles/ms/icons/blue-dot.png',
-#                 'lat': 37.4300,
-#                 'lng': -122.1400,
-#                 'infobox': "Hello I am <b style='color:blue;'>BLUE</b>!"
-#             },
-#             {
-#                 'icon': icons.dots.yellow,
-#                 'title': 'Click Here',
-#                 'lat': 37.4500,
-#                 'lng': -122.1350,
-#                 'infobox': (
-#                     "Hello I am <b style='color:#ffcc00;'>YELLOW</b>!"
-#                     "<h2>It is HTML title</h2>"
-#                     "<img src='//placehold.it/50'>"
-#                     "<br>Images allowed!"
-#                 )
-#             }
-#         ],
-#         # maptype = "TERRAIN",
-#         # zoom="5"
-#     )
-
-#     return render_template('example_fullmap.html', fullmap=fullmap)
-
 
 if __name__ == '__main__':
     GoogleMaps(app, key = "AIzaSyDYRyuCbFOh_8ivTTnm1YjsXv4kKYWoPYc")

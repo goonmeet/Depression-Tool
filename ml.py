@@ -1,256 +1,504 @@
-import json, es_users, sys, os, csv, Image, preprocess, re, pytesseract, sys
-from TwitterAPI import *
-from twitter import *
-from time import sleep, time
 import pandas as pd
 import numpy as np
-from pandas.io.json import json_normalize
-import urllib, cStringIO
-import pytesseract
-from textblob import TextBlob
-reload(sys)
-sys.setdefaultencoding('utf-8')
+#from sklearn_pandas import DataFrameMapper, cross_val_score
+#import sklearn.preprocessing, sklearn.decomposition,sklearn.linear_model, sklearn.pipeline, sklearn.metrics
+#from sklearn.feature_extraction.text import CountVectorizer
+from scipy import sparse
+from nltk.corpus import sentiwordnet as swn
+import matplotlib
+from pylab import *
+import tweet_level_df
 
-def modifiy_created_at(df):
-	for index, row in df.iterrows():
-		m = re.search('((\d{1,2})\/\d{1,2}\/\d{2,4}\ )(.+)', row["Created_at"])
-		df.set_value(index,'Created_at',str(m.group(2) + " " + m.group(3)))
-	return df
-
-def add_cleanTweet_and_sentiment_to_df(df_b):
-	print list(df_b)
-	for index, row in df_b.iterrows():
-		print index
-		row["Cleaned_text"] = preprocess.preprocess_tweet(row["Raw_text"])
-		print row["Cleaned_text"]
-		if row["Cleaned_text"] is not "":
-			row["Sentiment"] = sentiment(row["Cleaned_text"])
-			print row["Sentiment"]
-		else:
-			row["Sentiment"] = 0
-		df_b.loc[index] = row
-	return df_b
-
-def sentiment(tweet):
-	blob = TextBlob(tweet)
-	print (float(blob.sentiment.polarity))
-	sum_senti = 0
-	for sentence in blob.sentences:
-		sum_senti = sum_senti + sentence.sentiment.polarity
-		print sentence
-	return float((sum_senti / len(blob.sentences)))
-
-def get_user_tweet_objs(screen_name):
-	tweet_jsons = es_users.getStoredTweets(screen_name)
-	if len(tweet_jsons) == 0:
-		return None
-	all_user_tweet_obj = []
-	tweet_obj = {}
-	#print screen_name
-	for tweet_json in tweet_jsons:
-		img_text = ""
-		img_url = ""
-		#print tweet_json["_source"]
-		tweet_json = json.loads(json.dumps(tweet_json))
-		tweet_obj["es_id"] = tweet_json["_id"]
-		tweet_obj["text"] = tweet_json["_source"]["text"]
-		#print tweet_obj["text"]
-		tweet_obj["created_at"] = tweet_json["_source"]["created_at"]
-		tweet_obj["favorite_count"] = tweet_json["_source"]["favorite_count"]
-		tweet_obj["retweet_count"] = tweet_json["_source"]["retweet_count"]
-		tweet_obj["twitter_id_str"] = tweet_json["_source"]["id_str"]
-		tweet_obj["lang"] = tweet_json["_source"]["lang"]
-		if "place" in tweet_json["_source"]:
-			if ["place"] is not None:
-				tweet_obj["place"] = tweet_json["_source"]["place"]
-		if "coordinates" in tweet_json:
-			if "coordinates" in tweet_json["coordinates"]:
-				tweet_obj["coordinates"] = tweet_json["coordinates"]["coordinates"]
-		if "entities" in tweet_json["_source"]:
-			if ("media" in tweet_json["_source"]["entities"]) and (tweet_json["_source"]["entities"]["media"] is not None):
-				img_text = ""
-				for x in tweet_json["_source"]["entities"]["media"]:
-					img_url = str(x["media_url_https"])
-					file = cStringIO.StringIO(urllib.urlopen(str(x["media_url_https"])).read())
-					img = Image.open(file)
-					img_text = pytesseract.image_to_string(img)
-					print img_text
-		tweet_obj["img_text"] = str(img_text)
-		tweet_obj["img_url"] = img_url	
-		#print tweet_obj
-		all_user_tweet_obj.append(tweet_obj)
-		tweet_obj = {}
-	#print len(all_user_tweet_obj)
-	#Get all unique tweets:
-	unique_tweets = []
-	unique_tweets_obj = []
-	for x in all_user_tweet_obj:
-		#print x
-		if x["text"] not in unique_tweets:
-			unique_tweets_obj.append(x)
-			unique_tweets.append(x["text"])
-			#print len(unique_tweets_obj)
-	all_user_tweet_obj = unique_tweets_obj
-	#print len(all_user_tweet_obj)
-	#syst.exit()
-	return all_user_tweet_obj
-
-def get_user_data(list_df):
-    df_rows = []
-    for index, row in list_df.iterrows():
-	    user_profile_json = es_users.getUserProfile(row['USER_ID'])
-	    if (user_profile_json == []):
-	        x = 1
-	    else:
-	        user_profile_json = user_profile_json[0]
-	        user_profile_json = json.loads(json.dumps(user_profile_json["_source"]))
-	        user_tweets_obj = get_user_tweet_objs(row['USER_ID'])
-	        if user_tweets_obj is None:
-				continue
-	        user_all_tweets_string, avg_fav_count, avg_retweet_count, min_fav_count, max_fav_count = user_tweets_string(user_tweets_obj)# avg_fav_count, avg_retweet_count, min_fav_count, max_fav_count = 0
-	        if user_all_tweets_string is None:
-				continue
-	        user_profile_json["tweets"] = user_all_tweets_string
-	        user_profile_json["avg_fav_count"] = avg_fav_count
-	        user_profile_json["avg_retweet_count"] = avg_retweet_count
-	        user_profile_json["min_fav_count"] = min_fav_count
-	        user_profile_json["max_fav_count"] = max_fav_count
-	        df_rows.append(user_profile_json)
-    user_data = json_normalize(df_rows)
-    #print list(user_data)
-    #print len(list(user_data))
-    #print user_data
-    return user_data
-
-def user_tweets_string(user_tweets_obj):
-	user_all_tweets_string = ""
-	sum_fav_count = 0
-	max_fav_count = 0
-	min_fav_count = 0
-	sum_retweet_count = 0
-	for user_tweet_obj in user_tweets_obj:
-		#print user_tweet_obj["text"]
-		user_all_tweets_string = user_all_tweets_string + (user_tweet_obj["text"] .replace("\n", " "))
-		sum_retweet_count = user_tweet_obj["retweet_count"] + sum_retweet_count
-		sum_fav_count = user_tweet_obj["favorite_count"] + sum_fav_count
-		if user_tweet_obj["favorite_count"] > max_fav_count:
-			max_fav_count = user_tweet_obj["favorite_count"]
-		if user_tweet_obj["favorite_count"] < min_fav_count:
-			min_fav_count = user_tweet_obj["favorite_count"]
-	avg_fav_count = sum_fav_count / (len(user_tweets_obj)*1.0)
-	avg_retweet_count = sum_retweet_count / (len(user_tweets_obj)*1.0)
-	# print user_all_tweets_string
-	# print "avg fav " + str(avg_fav_count)
-	# print "avg retweet " + str(avg_retweet_count)
-	# print "max fav " + str(max_fav_count)
-	# print "min fav " + str(min_fav_count)
-	return user_all_tweets_string, avg_fav_count, avg_retweet_count, min_fav_count, max_fav_count
-
-if __name__ == "__main__":
-	#test_data = get_user_data(get_all_user_names_test())
-	#print "Done with test data frame"
-	# Read in goldstandard data
-	df_a = pd.read_csv("alliwantisthin_goonmeet.csv", quotechar="\"", header = 0, error_bad_lines=False, encoding='utf-8', engine='c' , names = ["Tweet_ID","Raw_text","Cleaned_text","Created_at","Sentiment","Annotation"])
-	df_b = pd.read_csv("beyond_broken_jibril.csv", quotechar="\"", header = 0, error_bad_lines=False, engine='c', names = ["Tweet_ID","Raw_text","Cleaned_text","Created_at","Sentiment","Annotation"])
-	df_c = pd.read_csv("beyond_darkness_ankia.csv", quotechar="\"", header = 0, error_bad_lines=False, encoding='utf-8', engine='c', names = ["Tweet_ID","Raw_text","Cleaned_text","Created_at","Sentiment","Annotation"])
-	df_d = pd.read_csv("suicidal_ideas_ankita.csv", quotechar="\"", header = 0, error_bad_lines=False, encoding='utf-8', engine='c', names = ["Tweet_ID","Raw_text","Cleaned_text","Created_at","Sentiment","Annotation"])
-	sum_senti = 0
-	i = 0
-	gold_df = df_a
-	print len(gold_df)
-	train_dfs = [df_b, df_c, df_d]
-	for x in train_dfs:
-		gold_df = gold_df.append(x, ignore_index=True)
-		print len(gold_df)
-	gold_df = modifiy_created_at(gold_df)
-	#print gold_df
-	#gold_df = gold_df.loc[gold_df["Annotation"] != "Other"]
-	#print len(gold_df)
-	#df_b.insert(1, "Cleaned_text", "hi")
+############################################################-----------------------------------
+#import os
+import re
+import logging
+import pandas as pd
+import numpy as np
+import nltk.data
+import sys
+from bs4 import BeautifulSoup
+from nltk.corpus import stopwords
+from gensim.models import word2vec
+from sklearn.preprocessing import Imputer
+from sklearn import linear_model, naive_bayes, svm, preprocessing
+#from sklearn import metrics
+from sklearn.decomposition import TruncatedSVD
+#from sklearn.grid_search import GridSearchCV
+from sklearn.ensemble import RandomForestClassifier as RFC
+from sklearn.cross_validation import cross_val_score
+from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
+from sklearn.feature_selection.univariate_selection import chi2, SelectKBest
+from sklearn.feature_selection import SelectKBest, chi2
+#from sklearn.metrics import precision_score, recall_score, f1_score, cohen_kappa_score, make_scorer
+import pickle
+#import requests
 
 
-# 		avg_sent = (sum_senti/len(blob.sentences) * 1.0)
-# 		row['Sentiment'] = avg_sent
-#     	print sum_senti
-# 		user_profile_json = es_users.getUser(row[0])
-# 		user_profile_json = es_users.getUser(row['USER_ID'])
-# 		if len(user_profile_json) == 0:
-# 			target.write(row[0]) #row['USER_ID']
-# 			target.write("\n")
-# 		
-# 	train_dfs = [df_a, df_b, df_c, df_d]
-# 	for x in train_dfs:
-# 		d = x.loc[x["Annotation"] == "Other"]
-# 		print d
-	# yes_df = append(df_ric.loc[df_ric["DEPRESSED/NO"] == "yes"])
-# 	print len(yes_df)
-# 	yes_df_des = (df_des.loc[df_des["DEPRESSED/NO"] == "yes"])
-# 	yes_df = yes_df.append(yes_df_des)
-# 	print len(yes_df)
-# 	df_old = pd.read_csv("depressed_users.csv", quotechar="\"", header = 0, error_bad_lines=False, encoding='utf-8', engine='c', names = ["DEPRESSED/NO"])
-# 	yes_df = yes_df.append(df_old)
-# 	print len(yes_df)
+
+
+
+
+##################### Initialization #####################
+
+# term_vector_type = {"TFIDF", "Binary", "Int", "Word2vec", "Word2vec_pretrained"}
+# {"TFIDF", "Int", "Binary"}: Bag-of-words model with {tf-idf, word counts, presence/absence} representation
+# {"Word2vec", "Word2vec_pretrained"}: Google word2vec representation {without, with} pre-trained models
+# Specify model_name if there's a pre-trained model to be loaded
+vector_type = "TFIDF"
+model_name = "GoogleNews-vectors-negative300.bin"
+
+# model_type = {"bin", "reg"}
+# Specify whether pre-trained word2vec model is binary
+model_type = "bin"
+
+# Parameters for word2vec
+# num_features need to be identical with the pre-trained model
+num_features = 300    # Word vector dimensionality
+min_word_count = 40   # Minimum word count to be included for training
+num_workers = 4       # Number of threads to run in parallel
+context = 10          # Context window size
+downsampling = 1e-3   # Downsample setting for frequent words
+
+# training_model = {"RF", "NB", "LR", "SVM", "BT", "no"}
+training_model = "SVM"
+
+# feature scaling = {"standard", "signed", "unsigned", "no"}
+# Note: Scaling is needed for SVM
+scaling = "unsigned"
+
+# dimension reduction = {"SVD", "chi2", "no"}
+# Note: For NB models, we cannot perform truncated SVD as it will make input negative
+# chi2 is the feature selectioin based on chi2 independence test
+dim_reduce = "no"
+num_dim = 3000
+
+# campaign, and target entity
+campaign_name = "symptoms"
+target_name = "symptoms"
+# train data file
+# train_data_file = "../data/" + campaign_name + "/" + target_name + ".csv"
+# model file
+save_model = True
+model_file = "models/" + campaign_name + "/" + target_name + "_" + training_model + ".pkl"
+preprocess = False
+##################### End of Initialization #####################
+
+
+
+##################### Function Definition #####################
+
+def clean_document(document, remove_stopwords = False, output_format = "string"):
+    """
+    Input:
+            document: raw text of a document
+            remove_stopwords: a boolean variable to indicate whether to remove stop words
+            output_format: if "string", return a cleaned string
+                           if "list", a list of words extracted from cleaned string.
+    Output:
+            Cleaned string or list.
+    """
+
+    # Remove HTML markup
+    text = BeautifulSoup(document)
+
+    # Keep only characters
+    text = re.sub("[^a-zA-Z]", " ", text.get_text())
+
+    # Split words and store to list
+    text = text.lower().split()
+
+    if remove_stopwords:
+
+        # Use set as it has O(1) lookup time
+        stops = set(stopwords.words("english"))
+        words = [w for w in text if w not in stops]
+
+    else:
+        words = text
+
+    # Return a cleaned string or list
+    if output_format == "string":
+        return " ".join(words)
+
+    elif output_format == "list":
+        return words
+
+def document_to_doublelist(document, tokenizer, remove_stopwords = False):
+    """
+    Function which generates a list of lists of words from a document for word2vec uses.
+
+    Input:
+        document: raw text of a document
+        tokenizer: tokenizer for sentence parsing
+                   nltk.data.load('tokenizers/punkt/english.pickle')
+        remove_stopwords: a boolean variable to indicate whether to remove stop words
+
+    Output:
+        A list of lists.
+        The outer list consists of all sentences in a document.
+        The inner list consists of all words in a sentence.
+    """
+
+    # Create a list of sentences
+    raw_sentences = tokenizer.tokenize(document.strip())
+    sentence_list = []
+
+    for raw_sentence in raw_sentences:
+        if len(raw_sentence) > 0:
+            sentence_list.append(clean_document(raw_sentence, False, "list"))
+    return sentence_list
+
+def document_to_vec(words, model, num_features):
+    """
+    Function which generates a feature vector for the given document.
+
+    Input:
+        words: a list of words extracted from a document
+        model: trained word2vec model
+        num_features: dimension of word2vec vectors
+
+    Output:
+        a numpy array representing the document
+    """
+
+    feature_vec = np.zeros((num_features), dtype="float32")
+    word_count = 0
+
+    # index2word is a list consisting of all words in the vocabulary
+    # Convert list to set for speed
+    index2word_set = set(model.index2word)
+
+    for word in words:
+        if word in index2word_set:
+            word_count += 1
+            feature_vec += model[word]
+
+    feature_vec /= word_count
+    return feature_vec
+
+def gen_document_vecs(documents, model, num_features):
+    """
+    Function which generates a m-by-n numpy array from all documents,
+    where m is len(documents), and n is num_feature
+
+    Input:
+            documents: a list of lists.
+                     Inner lists are words from each content.
+                     Outer lists consist of all documents
+            model: trained word2vec model
+            num_feature: dimension of word2vec vectors
+    Output: m-by-n numpy array, where m is len(content) and n is num_feature
+    """
+
+    curr_index = 0
+    doc_feature_vecs = np.zeros((len(documents), num_features), dtype="float32")
+
+    for review in documents:
+        if curr_index%1000 == 0.:
+            print ("Vectorizing content %d of %d", curr_index, len(documents))
+        doc_feature_vecs[curr_index] = document_to_vec(review, model, num_features)
+        curr_index += 1
+
+    return doc_feature_vecs
+
+##################### End of Function Definition #####################
+
+
+########################### Main Program ###########################
+print ("test")
+
+train_list = []
+word2vec_input = []
+pred = []
+
+#train_data = pd.read_csv(train_data_file, hsignedeader=0, delimiter="\t", encoding="utf-8", quoting=3)
+#train_data = pd.read_csv(train_data_file, delimiter="\t", encoding="utf-8", quoting=3)
+train_data = tweet_level_df.get_goldstandard_df()
+train_data = train_data.dropna()
+print train_data.loc[60]
+# print (pd.isnull(train_data))
+print train_data.columns
+print train_data.Raw_text.loc[0]
+
+#print (train_data.tail(2000))
+#sys.exit()
+# train_data.columns = ['id', 'sentiment', 'content','textBlob','pos_counts','neg_counts','negative_hashtag_count','positive_hashtag_count']
+#print(train_data.postive_hashtag_count)
+#sys.exit()
+#print ("heeeeeeeeeeeeereeee")
+#sys.exit()
+
+
+if vector_type == "Word2vec":
+    unlab_train_data = pd.read_csv("unlabeledTrainData.tsv", header=0, delimiter="\t", quoting=3)
+    tokenizer = nltk.data.load('tokenizers/punkt/english.pickle')
+    logging.basicConfig(format='%(asctime)s: %(message)s', level=logging.INFO)
+
+
+# Extract words from documents
+# range is faster when iterating
+if vector_type == "Word2vec" or vector_type == "Word2vec_pretrained":
+
+    for i in range(0, len(train_data.content)):
+        if vector_type == "Word2vec":
+            # Decode utf-8 coding first
+            word2vec_input.extend(document_to_doublelist(train_data.content[i].decode("utf-8"), tokenizer))
+
+        train_list.append(clean_document(train_data.content[i], output_format="list"))
+        if i%1000 == 0:
+            print ("Cleaning training content", i)
+
+    if vector_type == "Word2vec":
+        for i in range(0, len(unlab_train_data.content)):
+            word2vec_input.extend(document_to_doublelist(unlab_train_data.content[i].decode("utf-8"), tokenizer))
+            if i%1000 == 0:
+                print ("Cleaning unlabeled training content", i)
+
+elif vector_type != "no":
 	
+	if preprocess == True:
+		for i in range(0, len(train_data.content)):
+		        	# Append raw texts rather than lists as Count/TFIDF vectorizers take raw texts as inputs
+
+			try:
+				train_list.append(clean_document(train_data.content[i]))
+            	#print ("trainlist--->",train_list[i])
+
+			except Exception as e:
+				raise
+
+
+# Generate vectors from words
+if vector_type == "Word2vec_pretrained" or vector_type == "Word2vec":
+
+    if vector_type == "Word2vec_pretrained":
+        print ("Loading the pre-trained model")
+        if model_type == "bin":
+            model = word2vec.Word2Vec.load_word2vec_format(model_name, binary=True)
+        else:
+            model = word2vec.Word2Vec.load(model_name)
+
+    if vector_type == "Word2vec":
+        print ("Training word2vec word vectors")
+        model = word2vec.Word2Vec(word2vec_input, workers=num_workers, \
+                                size=num_features, min_count = min_word_count, \
+                                window = context, sample = downsampling)
+
+        # If no further training and only query is needed, this trims unnecessary memory
+        model.init_sims(replace=True)
+
+        # Save the model for later use
+        model.save(model_name)
+
+    print ("Vectorizing training contennp.asarray(vectorizer.get_feature_names())[ch2.get_support()]t")
+    train_vec = gen_document_vecs(train_list, model, num_features)
+
+elif vector_type != "no":
+    if vector_type == "TFIDF":
+        # Unit of gshow()ram is "word", only top 5000/10000 words are extracted
+        count_vec = TfidfVectorizer(analyzer="word", max_features=1, ngram_range=(1,3), sublinear_tf=True)
+
+    elif vector_type == "Binary" or vector_type == "Int":
+        count_vec = CountVectorizer(analyzer="word", max_features=10000, \
+                                    binary = (vector_type == "Binary"), \
+                                    ngram_range=(1,3))
+
+    # Return a scipy sparse term-document matrix
+    print ("Vectorizing input texts")
+
+
+
+    train_vec = count_vec.fit_transform(train_data.Cleaned_text)
+    
+#     sentiment_column = train_data[['Sentiment']].values
+#     train_vec = sparse.hstack((train_vec, sentiment_column)).tocsr()
+#     
+#     created_at_column = train_data[['Created_at']].values
+#     train_vec = sparse.hstack((train_vec, created_at_column.astype(float))).tocsr()
+#     
+#     month_column = train_data[['Month']].values
+#     train_vec = sparse.hstack((train_vec, created_at_column.astype(float))).tocsr()
+    
+    print "Here"
+
+    # new_text_blob = train_data[['textBlob']].values
+    # train_vec = sparse.hstack((train_vec, new_text_blob)).tocsr()
+    #
+#     pos_counts = train_data[['pos_counts']].values
+#     train_vec = sparse.hstack((train_vec, pos_counts)).tocsr()
+# 
+#     neg_counts = train_data[['neg_counts']].values
+#     train_vec = sparse.hstack((train_vec, neg_counts)).tocsr()
+
+
+    # pos_counts_hashtags = train_data[['positive_hashtag_count']].values
+    # train_vec = sparse.hstack((train_vec, pos_counts_hashtags)).tocsr()
+    #
+    # neg_counts_hashtags = train_data[['negative_hashtag_count']].values
+    # train_vec = sparse.hstack((train_vec, neg_counts_hashtags)).tocsr()
+
+    print ("train_vec.shape",train_vec.shape)
+    #print (train_vec)
+#     sys.exit()
+
+####################### HEREEEEE ################################################
+
+
+if scaling != "no":
+    #max_abs_scaler = preprocessing.MaxAbsScaler(max_abs_scaler = preprocessing.MaxAbsScaler())
+    if scaling == "standard":
+        scaler = preprocessing.StandardScaler(with_mean=False)
+    else:
+        if scaling == "unsigned":
+            #scaler = preprocessing.MinMaxScaler(feature_range=(0,1))
+            scaler = preprocessing.MaxAbsScaler()
+
+        elif scaling == "signed":
+            scaler = preprocessing.MinMaxScaler(feature_range=(-1,1))
+
+    print ("Scaling vectors")
+    train_vec = scaler.fit_transform(train_vec)
+#     print (train_vec)
+
+    #sys.exit()
+
+# Feature Scaling
+# Dimemsion Reduction
+if dim_reduce == "SVD":
+    print ("Performing dimension reduction")
+    svd = TruncatedSVD(n_components = num_dim)
+    train_vec = svd.fit_transform(train_vec)
+    print ("Explained variance ratio =", svd.explained_variance_ratio_.sum())
+
+elif dim_reduce == "chi2":
+    print ("Performing feature selection based on chi2 independence test")
+    chi2score = chi2(train_vec,train_data.sentiment)[0]
+    ##################
+    fselect = SelectKBest(chi2, k = num_dim)
+    train_vec = fselect.fit_transform(train_vec, train_data.sentiment)
+    #print (train_vec.get_feature_names())
+
+
+    figure(figsize=(6,6))
+    wscores = zip(count_vec.get_feature_names(),chi2score)
+    wchi2 = sorted(wscores,key=lambda x:x[1])
+    topchi2 = list(zip(*wchi2[-100:]))
+    x = range(len(topchi2[1]))
+    #print(len(topchi2[1]))
+    #sys.exit()
+    labels = topchi2[0]
+    barh(x,topchi2[1],align='center',alpha=.2,color='g')
+    plot(topchi2[1],x,'-o',markersize=2,alpha=.8,color='g')
+    yticks(x,labels)
+    xlabel('$\chi^2$')
+    #show()
+
+
+    # new_text_blob = train_data[['textBlob']].values
+    # train_vec = sparse.hstack((train_vec, new_text_blob)).tocsr()
+    #
+    # pos_counts = train_data[['pos_counts']].values
+    # train_vec = sparse.hstack((train_vec, pos_counts)).tocsr()
+    #
+    # neg_counts = train_data[['neg_counts']].values
+    # train_vec = sparse.hstack((train_vec, neg_counts)).tocsr()
+
+
+    pos_counts_hashtags = train_data[['positive_hashtag_count']].values
+    train_vec = sparse.hstack((train_vec, pos_counts_hashtags)).tocsr()
+
+    neg_counts_hashtags = train_data[['negative_hashtag_count']].values
+    train_vec = sparse.hstack((train_vec, neg_counts_hashtags)).tocsr()
+
+    print ("train_vec.shape",train_vec.shape)
+    #sys.exit()
+
+
+# Transform into numpy arrays
+if "numpy.ndarray" not in str(type(train_vec)):
+    train_vec = train_vec.toarray()
+
+
+
+# Model training
+if training_model == "RF" or training_model == "BT":
+    # Initialize the Random Forest or bagged tree based the model chosen
+    rfc = RFC(n_estimators = 100, oob_score = True, \
+              max_features = (None if training_model=="BT" else "auto"))
+    cv_accuracy = cross_val_score(rfc, train_vec, train_data.sentiment, scoring="accuracy", cv=5)
+    cv_prec = cross_val_score(rfc, train_vec, train_data.sentiment, scoring="precision_macro",  cv=5)
+    cv_rec = cross_val_score(rfc, train_vec, train_data.sentiment, scoring="recall_macro", cv=5)
+    cv_f1 = cross_val_score(rfc, train_vec, train_data.sentiment, scoring="f1_macro", cv=5)
+    print ("Training %s" % ("Random Forest" if training_model=="RF" else "bagged tree"))
+    print ("CV Accuracy = %.4f" % cv_accuracy.mean())
+    print ("CV Precision = %.4f" % cv_prec.mean())
+    print ("CV Recall = %.4f" % cv_rec.mean())
+    print ("CV F1 Score = %.4f" % cv_f1.mean())
+    rfc = rfc.fit(train_vec, train_data.sentiment)
+    print ("OOB Score =", rfc.oob_score_)
+    if save_model:
+        f = open(model_file, "wb")
+        pickle.dump(rfc, f)
+
+elif training_model == "NB":
+    nb = naive_bayes.MultinomialNB()
+    cv_accuracy = cross_val_score(nb, train_vec, train_data.sentiment, scoring="accuracy", cv=5)
+    cv_prec = cross_val_score(nb, train_vec, train_data.sentiment, scoring="precision_macro",  cv=5)
+    cv_rec = cross_val_score(nb, train_vec, train_data.sentiment, scoring="recall_macro", cv=5)
+    cv_f1 = cross_val_score(nb, train_vec, train_data.sentiment, scoring="f1_macro", cv=5)
+    print ("Training Naive Bayes")
+    print ("CV Accuracy = %.4f" % cv_accuracy.mean())
+    print ("CV Precision = %.4f" % cv_prec.mean())
+    print ("CV Recall = %.4f" % cv_rec.mean())
+    print ("CV F1 Score = %.4f" % cv_f1.mean())
+    nb = nb.fit(train_vec, train_data.sentiment)
+#    f = open("../models/edrugtrend_nb_model_sentiment.pkl","wb")
+    if save_model:
+        f = open(model_file, "wb")
+        pickle.dump(nb, f)
+
+elif training_model == "LR":
+    lr = linear_model.LogisticRegression(dual=False, \
+                class_weight="balanced", solver='lbfgs', multi_class="multinomial")
+    cv_accuracy = cross_val_score(lr, train_vec, train_data.sentiment, scoring="accuracy", cv=5)
+    cv_prec = cross_val_score(lr, train_vec, train_data.sentiment, scoring="precision_macro",  cv=5)
+    cv_rec = cross_val_score(lr, train_vec, train_data.sentiment, scoring="recall_macro", cv=5)
+    cv_f1 = cross_val_score(lr, train_vec, train_data.sentiment, scoring="f1_macro", cv=5)
+    print ("Training Logistic Regression")
+    print ("CV Accuracy = %.4f" % cv_accuracy.mean())
+    print ("CV Precision = %.4f" % cv_prec.mean())
+    print ("CV Recall = %.4f" % cv_rec.mean())
+    print ("CV F1 Score = %.4f" % cv_f1.mean())
+    lr = lr.fit(train_vec, train_data.sentiment)
+    if save_model:
+        f = open(model_file, "wb")
+        pickle.dump(lr, f)
+
+elif training_model == "SVM":
+    svc = svm.LinearSVC(C=1.0)
+#    svc = svm.SVC(C=1.0)
+#    param = {'C': [1e15,1e13,1e11,1e9,1e7,1e5,1e3,1e1,1e-1,1e-3,1e-5]}
+    print ("Training SVM")
+#    f1_macro = metrics.make_scorer(metrics.f1_score, pos_label=None, average='macro')
+#    svc = GridSearchCV(svc, param, score_func = metrics.accuracy_score, cv=5)
 	
-	
-	#no_df =  df.loc[df['DEPRESSED/NO'] == "no"]
-	# for index, row in yes_df.iterrows():
-# 		print row[0]
-# 		user_profile_json = es_users.getUser(row[0])
-# # 		user_profile_json = es_users.getUser(row['USER_ID'])
-# 		if len(user_profile_json) == 0:
-# 			target.write(row[0]) #row['USER_ID']
-# 			target.write("\n")
-	# yes_user_data = get_user_data(yes_df)
-# 	print "Done with yes data frame"
-# 	no_user_data = get_user_data(no_df)
-# 	print "Done with no data frame"
-    #print (list(yes_user_data))
-    #print yes_user_data.ix[0]["tweets"]
-    #print no_user_data.ix[0]
-    #print len(get_user_tweet_objs("rahzamdy"))
+    cv_accuracy = cross_val_score(svc, train_vec, train_data.Annotation, scoring="accuracy", cv=5)
+    cv_prec = cross_val_score(svc, train_vec, train_data.Annotation, scoring="precision_macro",  cv=5)
+    cv_rec = cross_val_score(svc, train_vec, train_data.Annotation, scoring="recall_macro", cv=5)
+    cv_f1 = cross_val_score(svc, train_vec, train_data.Annotation, scoring="f1_macro", cv=5)
+    print ("Training Support Vector Machine")
+    print ("CV Accuracy = %.4f" % cv_accuracy.mean())
+    print ("CV Precision = %.4f" % cv_prec.mean())
+    print ("CV Recall = %.4f" % cv_rec.mean())
+    print ("CV F1 Score = %.4f" % cv_f1.mean())
+    show()
+    svc = svc.fit(train_vec, train_data.Annotation)
+#    print ("Optimized parameters:", svc.best_estimator_)
+#    print ("Best CV score:", svc.best_score_)
+    if save_model:
+        f = open(model_file, "wb")
+        pickle.dump(svc, f)
 
 
-# def get_user_data(yes_df):
-#     df_rows = []
-#     df_cols = []
-#
-#     row_index = -1
-#     #print list(yes_df)
-#     for index, row in yes_df.iterrows():
-#         user_profile_json = es_users.getUserProfile(row['USER_ID'])
-#         if user_profile_json == []:
-#             x = 1
-#             #print row['USER_ID']
-#         else:
-#             row_index = row_index + 1
-#             user_profile_json = user_profile_json[0]
-#             #print user_profile_json
-#             user_profile_json = json.loads(json.dumps(user_profile_json["_source"]))
-#             #user_profile_json = json_normalize(user_profile_json)
-#             user_row = []
-#             #yes_user_data.append(json_normalize(user_profile_json), ignore_index = True)
-#             df_rows.append(user_profile_json)
-#             for key in user_profile_json:
-#                 if key not in df_cols:
-#                     #print key
-#                     df_cols.append(key)
-#                 #print user_profile_json[key]
-#                 # if isinstance(user_profile_json[key], list):
-#                 #     print user_profile_json[key]
-#                 #     print "hi"
-#             #     print key
-#             #     print row_index
-#             #     yes_user_data.loc[row_index,key] = user_profile_json[key]
-#     #yes_user_data = pd.DataFrame(columns = df_cols)
-#     yes_user_data = json_normalize(df_rows)
-#     #print yes_user_data
-#     #print df_rows
-#     # for x in df_rows:
-#     #     print x
-#     #     yes_user_data.append(x, ignore_index = True)
-#     print list(yes_user_data)
-#     print len(list(yes_user_data))
-#     print yes_user_data
 
-#	df_b.to_csv("check.csv", index = False, quotechar="\"", sep=',', header = 0 , columns = ["Tweet_ID","Raw_text","Cleaned_text","Created_at","Sentiment","Annotation"])
