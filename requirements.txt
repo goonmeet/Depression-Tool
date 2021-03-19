@@ -30,7 +30,7 @@ idna==2.2
 ipaddress==1.0.18
 ipython==2.4.1
 itsdangerous==0.24
-Jinja2==2.8
+Jinja2==2.11.3
 langdetect==1.0.7
 lockfile==0.12.2
 lxml==3.5.0
