@@ -11,7 +11,7 @@ cryptography==1.2.3
 cssselect==0.9.1
 cycler==0.10.0
 decorator==4.0.6
-Django==1.11.29
+Django==2.2.24
 dominate==2.3.1
 duplicity==0.7.6
 elasticsearch==5.1.0
