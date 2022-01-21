@@ -28,7 +28,7 @@ haversine==0.4.5
 html5lib==0.999
 idna==2.2
 ipaddress==1.0.18
-ipython==2.4.1
+ipython==7.16.3
 itsdangerous==0.24
 Jinja2==2.8
 langdetect==1.0.7
