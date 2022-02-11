@@ -76,7 +76,7 @@ sqlparse==0.1.18
 subprocess32==3.2.7
 textblob==0.12.0
 tweepy==3.5.0
-Twisted==16.0.0
+Twisted==22.1.0
 twitter==1.17.1
 TwitterAPI==2.4.3
 tzlocal==1.3
